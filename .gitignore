@@ -8,3 +8,6 @@ isogame
 # Go coverage
 *.out
 
+# Vendor
+vendor/**
+!vendor/manifest
