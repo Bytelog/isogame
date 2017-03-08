@@ -26,3 +26,21 @@ func main() {
 	}
 
 }
+
+type tile struct {
+	enabled bool
+}
+
+func makeTiles(x, y, z int) [][][]tile {
+	tiles := make([][][]tile, x)
+	for i := 0; i < x; i++ {
+		tiles[i] = make([][]tile, y)
+		for j := 0; j < y; j++ {
+			tiles[i][j] = make([]tile, z)
+
+			// TODO: Procedurally generate some real way
+			tiles[i][j][0] = tile{true}
+		}
+	}
+	return tiles
+}
