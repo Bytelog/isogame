@@ -2,6 +2,9 @@
 bin/
 isogame
 
+# Assets
+assets/
+
 # Test Binary
 *.test
 
