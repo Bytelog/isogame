@@ -27,19 +27,33 @@ func main() {
 
 }
 
-type tile struct {
-	enabled bool
+type Map struct {
+	Name    string
+	Objects []Object
+	Tiles   [][][]Tile
 }
 
-func makeTiles(x, y, z int) [][][]tile {
-	tiles := make([][][]tile, x)
+type Tile struct {
+	Class   uint16
+	Enabled bool
+}
+
+type Object struct {
+	Position
+}
+
+func makeTiles(x, y, z int) [][][]Tile {
+	tiles := make([][][]Tile, x)
 	for i := 0; i < x; i++ {
-		tiles[i] = make([][]tile, y)
+		tiles[i] = make([][]Tile, y)
 		for j := 0; j < y; j++ {
-			tiles[i][j] = make([]tile, z)
+			tiles[i][j] = make([]Tile, z)
 
 			// TODO: Procedurally generate some real way
-			tiles[i][j][0] = tile{true}
+			tiles[i][j][0] = Tile{
+				Class:   0,
+				Enabled: 0,
+			}
 		}
 	}
 	return tiles
