@@ -22,6 +22,13 @@ func main() {
 
 	raylib.SetTargetFPS(60)
 
+	camera := raylib.Camera2D{
+		Target:   raylib.NewVector2(float32(screenWidth/2), float32(screenHeight/2)),
+		Offset:   raylib.NewVector2(0, 0),
+		Rotation: 0.0,
+		Zoom:     0.5,
+	}
+
 	img := raylib.LoadImage("grass.png")
 	defer raylib.UnloadImage(img)
 
@@ -36,8 +43,50 @@ func main() {
 	}
 
 	for !raylib.WindowShouldClose() {
+		if raylib.IsKeyDown(raylib.KeyRight) {
+			camera.Offset.X -= 5 // Camera displacement with player movement
+		} else if raylib.IsKeyDown(raylib.KeyLeft) {
+			camera.Offset.X += 5 // Camera displacement with player movement
+		}
+
+		if raylib.IsKeyDown(raylib.KeyDown) {
+			camera.Offset.Y -= 5 // Camera displacement with player movement
+		} else if raylib.IsKeyDown(raylib.KeyUp) {
+			camera.Offset.Y += 5 // Camera displacement with player movement
+		}
+
+		// Camera rotation controls
+		if raylib.IsKeyDown(raylib.KeyA) {
+			camera.Rotation--
+		} else if raylib.IsKeyDown(raylib.KeyS) {
+			camera.Rotation++
+		}
+
+		// Limit camera rotation to 80 degrees (-40 to 40)
+		if camera.Rotation > 40 {
+			camera.Rotation = 40
+		} else if camera.Rotation < -40 {
+			camera.Rotation = -40
+		}
+
+		// Camera zoom controls
+		camera.Zoom += float32(raylib.GetMouseWheelMove()) * 0.05
+
+		if camera.Zoom > 3.0 {
+			camera.Zoom = 3.0
+		} else if camera.Zoom < 0.1 {
+			camera.Zoom = 0.1
+		}
+
+		// Camera reset (zoom and rotation)
+		if raylib.IsKeyPressed(raylib.KeySpace) {
+			camera.Zoom = 1.0
+			camera.Rotation = 0.0
+		}
+
 		raylib.BeginDrawing()
 		raylib.ClearBackground(raylib.RayWhite)
+		raylib.Begin2dMode(camera)
 
 		for ix := worldWidth - 1; ix >= 0; ix-- {
 			for iy := 0; iy < worldHeight; iy++ {
@@ -59,6 +108,7 @@ func main() {
 			}
 		}
 
+		raylib.End2dMode()
 		raylib.EndDrawing()
 	}
 
