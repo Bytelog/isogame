@@ -6,6 +6,17 @@ func main() {
 	screenWidth := int32(1300)
 	screenHeight := int32(700)
 
+	tileWidth := int(34) // effective size after scaling by 0.5x, orthogonal
+	tileHeight := int(34)
+	tileDepth := int(82) - tileHeight // 82 (full height) - tileHeight
+
+	worldWidth := int(64)
+	worldHeight := int(64)
+	worldDepth := int(3)
+
+	drawOffsetX := screenWidth/2 - int32(tileWidth)
+	drawOffsetY := screenHeight/2 - int32(tileHeight)
+
 	raylib.InitWindow(screenWidth, screenHeight, "ISOGAME")
 	defer raylib.CloseWindow()
 
@@ -15,13 +26,39 @@ func main() {
 	defer raylib.UnloadImage(img)
 
 	raylib.ImageResize(img, img.Width/2, img.Height/2)
-	tile := raylib.LoadTextureFromImage(img)
-	defer raylib.UnloadTexture(tile)
+	texture := raylib.LoadTextureFromImage(img)
+	defer raylib.UnloadTexture(texture)
+
+	world := Map{
+		Name:    "World",
+		Objects: make([]Object, 0),
+		Tiles:   makeTiles(worldWidth, worldHeight, worldDepth),
+	}
 
 	for !raylib.WindowShouldClose() {
 		raylib.BeginDrawing()
 		raylib.ClearBackground(raylib.RayWhite)
-		raylib.DrawTexture(tile, screenWidth/2-tile.Width/2, screenHeight/2-tile.Height/2, raylib.White)
+
+		for ix := worldWidth - 1; ix >= 0; ix-- {
+			for iy := 0; iy < worldHeight; iy++ {
+				for iz := 0; iz < worldDepth; iz++ {
+					itile := world.Tiles[ix][iy][iz]
+
+					if itile.Enabled {
+						v := raylib.Vector3{
+							float32(ix * tileWidth),
+							float32(iy * tileHeight),
+							float32(iz * -tileDepth)}
+						VectorISO(&v)
+						raylib.DrawTexture(texture,
+							int32(v.X)+drawOffsetX,
+							int32(v.Y)+drawOffsetY,
+							raylib.White)
+					}
+				}
+			}
+		}
+
 		raylib.EndDrawing()
 	}
 
@@ -52,7 +89,20 @@ func makeTiles(x, y, z int) [][][]Tile {
 			// TODO: Procedurally generate some real way
 			tiles[i][j][0] = Tile{
 				Class:   0,
-				Enabled: 0,
+				Enabled: true,
+			}
+
+			if (i+j)%2 == 0 {
+				tiles[i][j][1] = Tile{
+					Class:   0,
+					Enabled: true,
+				}
+			}
+			if (i+j)%2 == 1 {
+				tiles[i][j][2] = Tile{
+					Class:   0,
+					Enabled: true,
+				}
 			}
 		}
 	}
