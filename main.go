@@ -39,7 +39,7 @@ type Tile struct {
 }
 
 type Object struct {
-	Position
+	Position raylib.Vector3
 }
 
 func makeTiles(x, y, z int) [][][]Tile {
