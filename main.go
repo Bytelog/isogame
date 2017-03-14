@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gen2brain/raylib-go/raylib"
+	"math"
 	"sort"
 )
 
@@ -42,14 +43,15 @@ func main() {
 
 	for ix, tx := range world.Tiles {
 		for iy, ty := range tx {
-			for iz, t := range ty {
+			for _, t := range ty {
 				if t.Enabled {
 					buffer = append(buffer, RenderTile{
 						texture: texture,
 						position: raylib.NewVector3(
 							float32(ix*tileWidth),
 							float32(iy*tileHeight),
-							float32(iz*tileDepth)),
+							t.Z*float32(tileDepth),
+						),
 					})
 				}
 			}
@@ -92,7 +94,7 @@ func main() {
 
 		for _, o := range buffer {
 			v := o.Position()
-			v.Z = -v.Z
+			v.Z = -v.Z // Flip z because our axes directions are *$#!ed
 			VectorISO(&v)
 			raylib.DrawTexture(o.Texture(), int32(v.X), int32(v.Y), raylib.White)
 		}
@@ -110,6 +112,7 @@ type Map struct {
 }
 
 type Tile struct {
+	Z       float32
 	Class   uint16
 	Enabled bool
 }
@@ -150,11 +153,12 @@ func (b RenderBuffer) Less(i, j int) bool {
 	vi := b[i].Position()
 	vj := b[j].Position()
 
-	if vi.Z != vj.Z {
-		return vi.Z < vj.Z
-	}
+	// The first in sort ("lesser") is the furthest to draw.
+	// The furthest point from the viewport is x = Inf, y = 0, z = Inf
+	isum := -vi.X + vi.Y - vi.Z
+	jsum := -vj.X + vj.Y - vj.Z
 
-	return vi.Y-vi.X < vj.Y-vj.X
+	return isum < jsum
 }
 
 func makeTiles(x, y, z int) [][][]Tile {
@@ -162,26 +166,14 @@ func makeTiles(x, y, z int) [][][]Tile {
 	for i := 0; i < x; i++ {
 		tiles[i] = make([][]Tile, y)
 		for j := 0; j < y; j++ {
-			tiles[i][j] = make([]Tile, z)
+			tiles[i][j] = make([]Tile, 0, z)
 
 			// TODO: Procedurally generate some real way
-			tiles[i][j][0] = Tile{
+			tiles[i][j] = append(tiles[i][j], Tile{
+				Z:       500 / float32(math.Pow(float64(i-x/2), 2)+math.Pow(float64(j-y/2), 2)),
 				Class:   0,
 				Enabled: true,
-			}
-
-			if (i+j)%2 == 0 {
-				tiles[i][j][1] = Tile{
-					Class:   0,
-					Enabled: true,
-				}
-			}
-			if (i+j)%2 == 1 {
-				tiles[i][j][2] = Tile{
-					Class:   0,
-					Enabled: true,
-				}
-			}
+			})
 		}
 	}
 	return tiles
