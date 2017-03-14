@@ -9,13 +9,9 @@ func main() {
 	screenWidth := int32(1300)
 	screenHeight := int32(700)
 
-	//tileWidth := int(34) // effective size after scaling by 0.5x, orthogonal
-	//tileHeight := int(34)
-	//tileDepth := int(82) - tileHeight // 82 (full height) - tileHeight
-
-	//worldWidth := int(32)
-	//worldHeight := int(32)
-	//worldDepth := int(3)
+	tileWidth := int(32) // effective size after scaling by 0.5x,
+	tileHeight := int(32)
+	tileDepth := int(48)
 
 	raylib.InitWindow(screenWidth, screenHeight, "ISOGAME")
 	defer raylib.CloseWindow()
@@ -36,21 +32,27 @@ func main() {
 	texture := raylib.LoadTextureFromImage(img)
 	defer raylib.UnloadTexture(texture)
 
-	/*world := Map{
+	world := Map{
 		Name:    "World",
 		Objects: make([]Object, 0),
-		Tiles:   makeTiles(worldWidth, worldHeight, worldDepth),
-	}*/
+		Tiles:   makeTiles(32, 32, 3),
+	}
 
 	var buffer RenderBuffer
 
-	for i := 0; i < 10; i++ {
-		for j := 0; j < 10; j++ {
-			pos := raylib.NewVector3(float32(i*32), float32(j*32), 0)
-			buffer = append(buffer, RenderTile{
-				texture:  texture,
-				position: pos,
-			})
+	for ix, tx := range world.Tiles {
+		for iy, ty := range tx {
+			for iz, t := range ty {
+				if t.Enabled {
+					buffer = append(buffer, RenderTile{
+						texture: texture,
+						position: raylib.NewVector3(
+							float32(ix*tileWidth),
+							float32(iy*tileHeight),
+							float32(iz*tileDepth)),
+					})
+				}
+			}
 		}
 	}
 
@@ -90,6 +92,7 @@ func main() {
 
 		for _, o := range buffer {
 			v := o.Position()
+			v.Z = -v.Z
 			VectorISO(&v)
 			raylib.DrawTexture(o.Texture(), int32(v.X), int32(v.Y), raylib.White)
 		}
