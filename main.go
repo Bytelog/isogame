@@ -1,21 +1,21 @@
 package main
 
-import "github.com/gen2brain/raylib-go/raylib"
+import (
+	"github.com/gen2brain/raylib-go/raylib"
+	"sort"
+)
 
 func main() {
 	screenWidth := int32(1300)
 	screenHeight := int32(700)
 
-	tileWidth := int(34) // effective size after scaling by 0.5x, orthogonal
-	tileHeight := int(34)
-	tileDepth := int(82) - tileHeight // 82 (full height) - tileHeight
+	//tileWidth := int(34) // effective size after scaling by 0.5x, orthogonal
+	//tileHeight := int(34)
+	//tileDepth := int(82) - tileHeight // 82 (full height) - tileHeight
 
-	worldWidth := int(64)
-	worldHeight := int(64)
-	worldDepth := int(3)
-
-	drawOffsetX := screenWidth/2 - int32(tileWidth)
-	drawOffsetY := screenHeight/2 - int32(tileHeight)
+	//worldWidth := int(32)
+	//worldHeight := int(32)
+	//worldDepth := int(3)
 
 	raylib.InitWindow(screenWidth, screenHeight, "ISOGAME")
 	defer raylib.CloseWindow()
@@ -36,37 +36,37 @@ func main() {
 	texture := raylib.LoadTextureFromImage(img)
 	defer raylib.UnloadTexture(texture)
 
-	world := Map{
+	/*world := Map{
 		Name:    "World",
 		Objects: make([]Object, 0),
 		Tiles:   makeTiles(worldWidth, worldHeight, worldDepth),
+	}*/
+
+	var buffer RenderBuffer
+
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 10; j++ {
+			pos := raylib.NewVector3(float32(i*32), float32(j*32), 0)
+			buffer = append(buffer, RenderTile{
+				texture:  texture,
+				position: pos,
+			})
+		}
 	}
+
+	sort.Stable(buffer)
 
 	for !raylib.WindowShouldClose() {
 		if raylib.IsKeyDown(raylib.KeyRight) {
-			camera.Offset.X -= 5 // Camera displacement with player movement
+			camera.Offset.X -= 10 // Camera displacement with player movement
 		} else if raylib.IsKeyDown(raylib.KeyLeft) {
-			camera.Offset.X += 5 // Camera displacement with player movement
+			camera.Offset.X += 10 // Camera displacement with player movement
 		}
 
 		if raylib.IsKeyDown(raylib.KeyDown) {
-			camera.Offset.Y -= 5 // Camera displacement with player movement
+			camera.Offset.Y -= 10 // Camera displacement with player movement
 		} else if raylib.IsKeyDown(raylib.KeyUp) {
-			camera.Offset.Y += 5 // Camera displacement with player movement
-		}
-
-		// Camera rotation controls
-		if raylib.IsKeyDown(raylib.KeyA) {
-			camera.Rotation--
-		} else if raylib.IsKeyDown(raylib.KeyS) {
-			camera.Rotation++
-		}
-
-		// Limit camera rotation to 80 degrees (-40 to 40)
-		if camera.Rotation > 40 {
-			camera.Rotation = 40
-		} else if camera.Rotation < -40 {
-			camera.Rotation = -40
+			camera.Offset.Y += 10 // Camera displacement with player movement
 		}
 
 		// Camera zoom controls
@@ -78,34 +78,20 @@ func main() {
 			camera.Zoom = 0.1
 		}
 
-		// Camera reset (zoom and rotation)
+		// Camera reset (zoom and position)
 		if raylib.IsKeyPressed(raylib.KeySpace) {
 			camera.Zoom = 1.0
-			camera.Rotation = 0.0
+			camera.Offset = camera.Target
 		}
 
 		raylib.BeginDrawing()
 		raylib.ClearBackground(raylib.RayWhite)
 		raylib.Begin2dMode(camera)
 
-		for ix := worldWidth - 1; ix >= 0; ix-- {
-			for iy := 0; iy < worldHeight; iy++ {
-				for iz := 0; iz < worldDepth; iz++ {
-					itile := world.Tiles[ix][iy][iz]
-
-					if itile.Enabled {
-						v := raylib.Vector3{
-							float32(ix * tileWidth),
-							float32(iy * tileHeight),
-							float32(iz * -tileDepth)}
-						VectorISO(&v)
-						raylib.DrawTexture(texture,
-							int32(v.X)+drawOffsetX,
-							int32(v.Y)+drawOffsetY,
-							raylib.White)
-					}
-				}
-			}
+		for _, o := range buffer {
+			v := o.Position()
+			VectorISO(&v)
+			raylib.DrawTexture(o.Texture(), int32(v.X), int32(v.Y), raylib.White)
 		}
 
 		raylib.End2dMode()
@@ -125,8 +111,47 @@ type Tile struct {
 	Enabled bool
 }
 
+type RenderTile struct {
+	texture  raylib.Texture2D
+	position raylib.Vector3
+}
+
+func (r RenderTile) Position() raylib.Vector3 {
+	return r.position
+}
+
+func (r RenderTile) Texture() raylib.Texture2D {
+	return r.texture
+}
+
 type Object struct {
 	Position raylib.Vector3
+}
+
+type Renderable interface {
+	Position() raylib.Vector3
+	Texture() raylib.Texture2D
+}
+
+type RenderBuffer []Renderable
+
+func (b RenderBuffer) Len() int {
+	return len(b)
+}
+
+func (b RenderBuffer) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func (b RenderBuffer) Less(i, j int) bool {
+	vi := b[i].Position()
+	vj := b[j].Position()
+
+	if vi.Z != vj.Z {
+		return vi.Z < vj.Z
+	}
+
+	return vi.Y-vi.X < vj.Y-vj.X
 }
 
 func makeTiles(x, y, z int) [][][]Tile {
