@@ -153,12 +153,10 @@ func (b RenderBuffer) Less(i, j int) bool {
 	vi := b[i].Position()
 	vj := b[j].Position()
 
-	// The first in sort ("lesser") is the furthest to draw.
-	// The furthest point from the viewport is x = Inf, y = 0, z = Inf
-	isum := -vi.X + vi.Y - vi.Z
-	jsum := -vj.X + vj.Y - vj.Z
-
-	return isum < jsum
+	// Draw renderables from bottom to top of screen, iso coords (+y -> 0)
+	VectorISO(&vi)
+	VectorISO(&vj)
+	return vi.Y < vj.Y
 }
 
 func makeTiles(x, y, z int) [][][]Tile {
