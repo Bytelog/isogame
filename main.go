@@ -48,7 +48,7 @@ func main() {
 	world := Map{
 		Name:    "World",
 		Objects: make([]Object, 0),
-		Tiles:   makeTiles(32, 32, 8),
+		Tiles:   makeTiles(32, 32, 3),
 	}
 
 	var buffer RenderBuffer
@@ -176,15 +176,15 @@ func makeTiles(x, y, z int) [][][]Tile {
 	for i := 0; i < x; i++ {
 		tiles[i] = make([][]Tile, y)
 		for j := 0; j < y; j++ {
-			tiles[i][j] = make([]Tile, z)
+			tiles[i][j] = make([]Tile, 0, z)
 
 			norm := noise.Eval2(float64(i), float64(j))/2 + 0.5
 			norm /= 2
-			tiles[i][j][0] = Tile{
+			tiles[i][j] = append(tiles[i][j], Tile{
 				Z:       float32(norm),
 				Class:   0,
 				Enabled: true,
-			}
+			})
 		}
 	}
 	return tiles
