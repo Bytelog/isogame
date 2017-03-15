@@ -37,6 +37,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/ojrac/opensimplex-go",
+			"repository": "https://github.com/ojrac/opensimplex-go",
+			"vcs": "git",
+			"revision": "c0d2b8b324684d1e69e72eaf01f69ff700e3396a",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/vova616/chipmunk",
 			"repository": "https://github.com/vova616/chipmunk",
 			"vcs": "git",

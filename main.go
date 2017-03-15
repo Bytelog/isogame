@@ -1,10 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gen2brain/raylib-go/raylib"
+	"github.com/ojrac/opensimplex-go"
 	"math"
 	"sort"
+	"time"
 )
+
+var _ = fmt.Println
+var _ = math.Log
+
+var noise *opensimplex.Noise
+
+func init() {
+	noise = opensimplex.NewWithSeed(time.Now().UnixNano())
+}
 
 func main() {
 	screenWidth := int32(1300)
@@ -36,7 +48,7 @@ func main() {
 	world := Map{
 		Name:    "World",
 		Objects: make([]Object, 0),
-		Tiles:   makeTiles(32, 32, 3),
+		Tiles:   makeTiles(32, 32, 8),
 	}
 
 	var buffer RenderBuffer
@@ -164,14 +176,15 @@ func makeTiles(x, y, z int) [][][]Tile {
 	for i := 0; i < x; i++ {
 		tiles[i] = make([][]Tile, y)
 		for j := 0; j < y; j++ {
-			tiles[i][j] = make([]Tile, 0, z)
+			tiles[i][j] = make([]Tile, z)
 
-			// TODO: Procedurally generate some real way
-			tiles[i][j] = append(tiles[i][j], Tile{
-				Z:       500 / float32(math.Pow(float64(i-x/2), 2)+math.Pow(float64(j-y/2), 2)),
+			norm := noise.Eval2(float64(i), float64(j))/2 + 0.5
+			norm /= 2
+			tiles[i][j][0] = Tile{
+				Z:       float32(norm),
 				Class:   0,
 				Enabled: true,
-			})
+			}
 		}
 	}
 	return tiles
