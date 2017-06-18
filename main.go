@@ -2,68 +2,52 @@ package main
 
 import (
 	"fmt"
-	"github.com/gen2brain/raylib-go/raylib"
-	"github.com/ojrac/opensimplex-go"
-	"math"
+	rl "github.com/gen2brain/raylib-go/raylib"
+	rm "github.com/gen2brain/raylib-go/raymath"
+	"isogame/world"
 	"sort"
-	"time"
 )
 
+var _ = rm.Clamp
+var _ = world.X_SIZE
 var _ = fmt.Println
-var _ = math.Log
-
-var noise *opensimplex.Noise
-
-func init() {
-	noise = opensimplex.NewWithSeed(time.Now().UnixNano())
-}
+var screenV = rl.Vector3{SCREEN_W, SCREEN_H, 0.0}
 
 func main() {
-	screenWidth := int32(1300)
-	screenHeight := int32(700)
+	rl.InitWindow(SCREEN_W, SCREEN_H, TITLE)
+	rl.SetTargetFPS(FPS)
+	defer rl.CloseWindow()
 
-	tileWidth := int(32) // effective size after scaling by 0.5x,
-	tileHeight := int(32)
-	tileDepth := int(48)
+	texture := rl.LoadTexture("grass.png")
+	defer rl.UnloadTexture(texture)
 
-	raylib.InitWindow(screenWidth, screenHeight, "ISOGAME")
-	defer raylib.CloseWindow()
+	w := world.New(TITLE)
 
-	raylib.SetTargetFPS(60)
-
-	camera := raylib.Camera2D{
-		Target:   raylib.NewVector2(float32(screenWidth/2), float32(screenHeight/2)),
-		Offset:   raylib.NewVector2(0, 0),
-		Rotation: 0.0,
-		Zoom:     0.5,
+	for i := 0; i < len(w.Chunk.Tiles); i++ {
+		for j := 0; j < len(w.Chunk.Tiles[i]); j++ {
+			for k := 0; k < len(w.Chunk.Tiles[i][j]); k++ {
+				if k <= 32 {
+					w.Chunk.Tiles[i][j][k] = &world.Tile{}
+				}
+			}
+		}
 	}
 
-	img := raylib.LoadImage("grass.png")
-	defer raylib.UnloadImage(img)
-
-	raylib.ImageResize(img, img.Width/2, img.Height/2)
-	texture := raylib.LoadTextureFromImage(img)
-	defer raylib.UnloadTexture(texture)
-
-	world := Map{
-		Name:    "World",
-		Objects: make([]Object, 0),
-		Tiles:   makeTiles(32, 32, 3),
-	}
+	w.Chunk.Tiles[8][8][32] = nil
 
 	var buffer RenderBuffer
 
-	for ix, tx := range world.Tiles {
+	for ix, tx := range w.Chunk.Tiles {
 		for iy, ty := range tx {
-			for _, t := range ty {
-				if t.Enabled {
+			for iz, tile := range ty {
+				if tile != nil {
 					buffer = append(buffer, RenderTile{
 						texture: texture,
-						position: raylib.NewVector3(
-							float32(ix*tileWidth),
-							float32(iy*tileHeight),
-							t.Z*float32(tileDepth),
-						),
+						position: rl.Vector3{
+							float32(ix * world.TILE_WIDTH),
+							float32(iy * world.TILE_HEIGHT),
+							float32(iz * world.TILE_DEPTH),
+						},
 					})
 				}
 			}
@@ -72,83 +56,83 @@ func main() {
 
 	sort.Stable(buffer)
 
-	for !raylib.WindowShouldClose() {
-		if raylib.IsKeyDown(raylib.KeyRight) {
+	// CENTERING:
+	// draw_start = screen center - chunk center
+	center := world.VectorISO(w.Center())
+	camera := rl.Camera2D{
+		Target: rl.Vector2{center.X + 75, -center.Y + 35},
+		Offset: rl.Vector2{(SCREEN_W - center.X) - SCREEN_W/2 - 75, SCREEN_H/2 + center.Y - 35},
+		Zoom:   1,
+	}
+
+	for !rl.WindowShouldClose() {
+		if rl.IsKeyDown(rl.KeyRight) {
 			camera.Offset.X -= 10 // Camera displacement with player movement
-		} else if raylib.IsKeyDown(raylib.KeyLeft) {
+		} else if rl.IsKeyDown(rl.KeyLeft) {
 			camera.Offset.X += 10 // Camera displacement with player movement
 		}
 
-		if raylib.IsKeyDown(raylib.KeyDown) {
+		if rl.IsKeyDown(rl.KeyDown) {
 			camera.Offset.Y -= 10 // Camera displacement with player movement
-		} else if raylib.IsKeyDown(raylib.KeyUp) {
+		} else if rl.IsKeyDown(rl.KeyUp) {
 			camera.Offset.Y += 10 // Camera displacement with player movement
 		}
 
 		// Camera zoom controls
-		camera.Zoom += float32(raylib.GetMouseWheelMove()) * 0.05
+		camera.Zoom += float32(rl.GetMouseWheelMove()) * 0.05
 
-		if camera.Zoom > 3.0 {
-			camera.Zoom = 3.0
-		} else if camera.Zoom < 0.1 {
-			camera.Zoom = 0.1
+		if camera.Zoom > 10.0 {
+			camera.Zoom = 10.0
+		} else if camera.Zoom < 0.01 {
+			camera.Zoom = 0.01
 		}
 
 		// Camera reset (zoom and position)
-		if raylib.IsKeyPressed(raylib.KeySpace) {
-			camera.Zoom = 1.0
+		if rl.IsKeyPressed(rl.KeySpace) {
+			camera.Zoom = 0.5
 			camera.Offset = camera.Target
 		}
 
-		raylib.BeginDrawing()
-		raylib.ClearBackground(raylib.RayWhite)
-		raylib.Begin2dMode(camera)
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.RayWhite)
+		rl.Begin2dMode(camera)
 
+		// Chunk Ortho
 		for _, o := range buffer {
 			v := o.Position()
 			v.Z = -v.Z // Flip z because our axes directions are *$#!ed
-			VectorISO(&v)
-			raylib.DrawTexture(o.Texture(), int32(v.X), int32(v.Y), raylib.White)
+			v = world.VectorISO(v)
+			rl.DrawTexture(o.Texture(), int32(v.X), int32(v.Y), rl.White)
 		}
 
-		raylib.End2dMode()
-		raylib.EndDrawing()
+		rl.DrawCircleV(camera.Target, 5, rl.Black)
+
+		rl.End2dMode()
+
+		// Ortho Axes
+		rl.DrawLine(0, SCREEN_H/2, SCREEN_W, SCREEN_H/2, rl.NewColor(230, 41, 55, 128))
+		rl.DrawLine(SCREEN_W/2, 0, SCREEN_W/2, SCREEN_H, rl.NewColor(230, 41, 55, 128))
+
+		rl.EndDrawing()
 	}
-
-}
-
-type Map struct {
-	Name    string
-	Objects []Object
-	Tiles   [][][]Tile
-}
-
-type Tile struct {
-	Z       float32
-	Class   uint16
-	Enabled bool
 }
 
 type RenderTile struct {
-	texture  raylib.Texture2D
-	position raylib.Vector3
+	texture  rl.Texture2D
+	position rl.Vector3
 }
 
-func (r RenderTile) Position() raylib.Vector3 {
+func (r RenderTile) Position() rl.Vector3 {
 	return r.position
 }
 
-func (r RenderTile) Texture() raylib.Texture2D {
+func (r RenderTile) Texture() rl.Texture2D {
 	return r.texture
 }
 
-type Object struct {
-	Position raylib.Vector3
-}
-
 type Renderable interface {
-	Position() raylib.Vector3
-	Texture() raylib.Texture2D
+	Position() rl.Vector3
+	Texture() rl.Texture2D
 }
 
 type RenderBuffer []Renderable
@@ -162,30 +146,9 @@ func (b RenderBuffer) Swap(i, j int) {
 }
 
 func (b RenderBuffer) Less(i, j int) bool {
-	vi := b[i].Position()
-	vj := b[j].Position()
+	vi := world.VectorISO(b[i].Position())
+	vj := world.VectorISO(b[j].Position())
 
 	// Draw renderables from bottom to top of screen, iso coords (+y -> 0)
-	VectorISO(&vi)
-	VectorISO(&vj)
 	return vi.Y < vj.Y
-}
-
-func makeTiles(x, y, z int) [][][]Tile {
-	tiles := make([][][]Tile, x)
-	for i := 0; i < x; i++ {
-		tiles[i] = make([][]Tile, y)
-		for j := 0; j < y; j++ {
-			tiles[i][j] = make([]Tile, 0, z)
-
-			norm := noise.Eval2(float64(i), float64(j))/2 + 0.5
-			norm /= 2
-			tiles[i][j] = append(tiles[i][j], Tile{
-				Z:       float32(norm),
-				Class:   0,
-				Enabled: true,
-			})
-		}
-	}
-	return tiles
 }
