@@ -10,7 +10,7 @@ var _ = rm.Clamp
 const (
 	X_SIZE        = 16
 	Y_SIZE        = 16
-	Z_SIZE        = 64
+	Z_SIZE        = 16
 	TILE_WIDTH    = 64
 	TILE_HEIGHT   = 64
 	TILE_DEPTH    = 96

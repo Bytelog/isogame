@@ -13,6 +13,23 @@ var _ = world.X_SIZE
 var _ = fmt.Println
 var screenV = rl.Vector3{SCREEN_W, SCREEN_H, 0.0}
 
+func gameToScreen(pos rl.Vector3) rl.Vector2 {
+	w := world.New("temp")
+	center := world.VectorISO(w.Center())
+	offset := world.VectorISO(pos)
+	return rl.Vector2{
+		X: center.X + 75 + offset.X,
+		Y: -center.Y + 35 + offset.Y,
+	}
+}
+
+/*
+func ScreenToGame(pos rl.Vector2) rl.Vector3 {
+	w := world.New("temp")
+	center := world.VectorISO(w.Center())
+	return rl.Vector3{}
+}*/
+
 func main() {
 	rl.InitWindow(SCREEN_W, SCREEN_H, TITLE)
 	rl.SetTargetFPS(FPS)
@@ -26,14 +43,14 @@ func main() {
 	for i := 0; i < len(w.Chunk.Tiles); i++ {
 		for j := 0; j < len(w.Chunk.Tiles[i]); j++ {
 			for k := 0; k < len(w.Chunk.Tiles[i][j]); k++ {
-				if k <= 32 {
+				if k <= 8 {
 					w.Chunk.Tiles[i][j][k] = &world.Tile{}
 				}
 			}
 		}
 	}
 
-	w.Chunk.Tiles[8][8][32] = nil
+	w.Chunk.Tiles[8][8][8] = nil
 
 	var buffer RenderBuffer
 
@@ -58,11 +75,14 @@ func main() {
 
 	// CENTERING:
 	// draw_start = screen center - chunk center
-	center := world.VectorISO(w.Center())
+	zero := gameToScreen(rm.VectorZero())
+
+	// tile offset: 75/35
 	camera := rl.Camera2D{
-		Target: rl.Vector2{center.X + 75, -center.Y + 35},
-		Offset: rl.Vector2{(SCREEN_W - center.X) - SCREEN_W/2 - 75, SCREEN_H/2 + center.Y - 35},
-		Zoom:   1,
+		Target: zero,
+		Offset: rl.Vector2{SCREEN_W/2 - zero.X, SCREEN_H/2 - zero.Y},
+		//Offset: rl.Vector2{(SCREEN_W - center.X) - SCREEN_W/2 - 75, SCREEN_H/2 + center.Y - 35},
+		Zoom: 1,
 	}
 
 	for !rl.WindowShouldClose() {
@@ -93,8 +113,12 @@ func main() {
 			camera.Offset = camera.Target
 		}
 
+		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+			fmt.Println(float32(rl.GetMouseX()), float32(rl.GetMouseY()))
+		}
+
 		rl.BeginDrawing()
-		rl.ClearBackground(rl.RayWhite)
+		rl.ClearBackground(rl.NewColor(93, 148, 241, 255))
 		rl.Begin2dMode(camera)
 
 		// Chunk Ortho
